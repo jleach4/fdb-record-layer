@@ -232,7 +232,7 @@ public class GeophileQueryTest extends FDBRecordStoreQueryTestBase {
                         DoubleValueOrParameter.parameter("center_latitude"),
                         DoubleValueOrParameter.parameter("center_longitude"),
                         DoubleValueOrParameter.value(distance),
-                        "City$location", ScanComparisons.EMPTY, covering);
+                        "City$location", ScanComparisons.EMPTY, covering, null);
         if (covering) {
             return spatialQuery;
         } else {

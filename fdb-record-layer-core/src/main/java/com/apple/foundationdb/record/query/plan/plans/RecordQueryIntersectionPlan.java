@@ -23,6 +23,7 @@ package com.apple.foundationdb.record.query.plan.plans;
 import com.apple.foundationdb.annotation.API;
 import com.apple.foundationdb.record.EvaluationContext;
 import com.apple.foundationdb.record.ExecuteProperties;
+import com.apple.foundationdb.record.IndexEntry;
 import com.apple.foundationdb.record.PlanHashable;
 import com.apple.foundationdb.record.RecordCoreArgumentException;
 import com.apple.foundationdb.record.RecordCursor;
@@ -31,6 +32,7 @@ import com.apple.foundationdb.record.provider.common.StoreTimer;
 import com.apple.foundationdb.record.provider.foundationdb.FDBQueriedRecord;
 import com.apple.foundationdb.record.provider.foundationdb.FDBRecordStoreBase;
 import com.apple.foundationdb.record.provider.foundationdb.FDBStoreTimer;
+import com.apple.foundationdb.record.provider.foundationdb.IndexOrphanBehavior;
 import com.apple.foundationdb.record.provider.foundationdb.cursors.IntersectionCursor;
 import com.apple.foundationdb.record.query.plan.temp.ExpressionRef;
 import com.apple.foundationdb.record.query.plan.temp.GroupExpressionRef;
@@ -123,13 +125,18 @@ public class RecordQueryIntersectionPlan implements RecordQueryPlanWithChildren 
                                                                          @Nonnull EvaluationContext context,
                                                                          @Nullable byte[] continuation,
                                                                          @Nonnull ExecuteProperties executeProperties) {
-        final ExecuteProperties childExecuteProperties = executeProperties.clearSkipAndLimit();
-        return IntersectionCursor.create(store, getComparisonKey(), reverse,
+        final ExecuteProperties childExecuteProperties = executeProperties.clearSkipAndLimitForBitMapScan();
+        final RecordCursor<IndexEntry> entryRecordCursor = IntersectionCursor.create(store, getComparisonKey(), reverse,
                 children.stream()
                         .map(childPlan -> (Function<byte[], RecordCursor<FDBQueriedRecord<M>>>)
                                 ((byte[] childContinuation) -> childPlan.get().execute(store, context, childContinuation, childExecuteProperties)))
                         .collect(Collectors.toList()),
-                continuation).skipThenLimit(executeProperties.getSkip(), executeProperties.getReturnedRowLimit());
+                continuation)
+                .map( mfdbQueriedRecord -> mfdbQueriedRecord.getIndexEntry())
+                .skipThenLimit(executeProperties.getSkip(), executeProperties.getReturnedRowLimit());
+        return store.
+                fetchIndexRecords(entryRecordCursor, IndexOrphanBehavior.ERROR, executeProperties.getState())
+                .map(store::queriedRecord);
     }
 
     @Override

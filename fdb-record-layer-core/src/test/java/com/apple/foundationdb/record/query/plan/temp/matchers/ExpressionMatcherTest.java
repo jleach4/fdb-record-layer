@@ -62,7 +62,7 @@ public class ExpressionMatcherTest {
             TypeMatcher.of(RecordQueryIndexPlan.class),
             TypeMatcher.of(RelationalExpression.class));
     private static List<Bindable> existingBindables = ImmutableList.of(
-            new RecordQueryIndexPlan("fake_index", IndexScanType.BY_VALUE, ScanComparisons.EMPTY, false),
+            new RecordQueryIndexPlan("fake_index", IndexScanType.BY_VALUE, ScanComparisons.EMPTY, false, null),
             new RecordQueryScanPlan(ScanComparisons.EMPTY, false));
 
 
@@ -107,7 +107,7 @@ public class ExpressionMatcherTest {
     public void singleTypeMatcher() {
         // we already have a different RecordQueryIndexPlan matcher, but this should still work
         ExpressionMatcher<RecordQueryIndexPlan> matcher = TypeMatcher.of(RecordQueryIndexPlan.class);
-        ExpressionRef<RelationalExpression> root = GroupExpressionRef.of(new RecordQueryIndexPlan("an_index", IndexScanType.BY_VALUE, ScanComparisons.EMPTY, true));
+        ExpressionRef<RelationalExpression> root = GroupExpressionRef.of(new RecordQueryIndexPlan("an_index", IndexScanType.BY_VALUE, ScanComparisons.EMPTY, true, null));
         Optional<PlannerBindings> newBindings = root.bindTo(matcher).findFirst();
         // check the the bindings are what we expect, and that none of the existing ones were clobbered
         assertTrue(newBindings.isPresent());
@@ -126,7 +126,7 @@ public class ExpressionMatcherTest {
         ExpressionMatcher<RecordQueryUnionPlan> parentMatcher = TypeMatcher.of(RecordQueryUnionPlan.class,
                 QuantifierMatcher.physical(childMatcher1),
                 QuantifierMatcher.physical(childMatcher2));
-        RecordQueryIndexPlan child1 = new RecordQueryIndexPlan("an_index", IndexScanType.BY_VALUE, ScanComparisons.EMPTY, true);
+        RecordQueryIndexPlan child1 = new RecordQueryIndexPlan("an_index", IndexScanType.BY_VALUE, ScanComparisons.EMPTY, true, null);
         RecordQueryScanPlan child2 = new RecordQueryScanPlan(ScanComparisons.EMPTY, true);
 
         // check matches if the children are in the right order
@@ -153,7 +153,7 @@ public class ExpressionMatcherTest {
                         // types are wrong based on ordering of children in getPlannerExpressionChildren()
                         QuantifierMatcher.physical(TypeMatcher.of(RecordQueryIndexPlan.class)),
                         QuantifierMatcher.physical(TypeMatcher.of(RecordQueryScanPlan.class)));
-        RecordQueryIndexPlan child1 = new RecordQueryIndexPlan("an_index", IndexScanType.BY_VALUE, ScanComparisons.EMPTY, true);
+        RecordQueryIndexPlan child1 = new RecordQueryIndexPlan("an_index", IndexScanType.BY_VALUE, ScanComparisons.EMPTY, true, null);
         RecordQueryScanPlan child2 = new RecordQueryScanPlan(ScanComparisons.EMPTY, true);
         ExpressionRef<RelationalExpression> root = GroupExpressionRef.of(RecordQueryUnionPlan.from( // union with arbitrary comparison key
                 child1, child2, EmptyKeyExpression.EMPTY, false));
@@ -172,7 +172,7 @@ public class ExpressionMatcherTest {
                 TypeMatcher.of(RecordQueryUnionPlan.class,
                         QuantifierMatcher.physical(childMatcher1),
                         QuantifierMatcher.physical(childMatcher2));
-        RecordQueryIndexPlan child1 = new RecordQueryIndexPlan("an_index", IndexScanType.BY_VALUE, ScanComparisons.EMPTY, true);
+        RecordQueryIndexPlan child1 = new RecordQueryIndexPlan("an_index", IndexScanType.BY_VALUE, ScanComparisons.EMPTY, true, null);
         RecordQueryScanPlan child2 = new RecordQueryScanPlan(ScanComparisons.EMPTY, true);
         ExpressionRef<RelationalExpression> root = GroupExpressionRef.of(RecordQueryUnionPlan.from( // union with arbitrary comparison key
                 child1, child2, EmptyKeyExpression.EMPTY, false));
@@ -208,7 +208,7 @@ public class ExpressionMatcherTest {
         QueryComponent andBranch2 = Query.field("field2").equalsParameter("param");
         LogicalFilterExpression filterPlan = new LogicalFilterExpression(rootSource,
                 Query.and(andBranch1, andBranch2).normalizeForPlanner(rootSource),
-                new RecordQueryIndexPlan("an_index", IndexScanType.BY_VALUE, ScanComparisons.EMPTY, true));
+                new RecordQueryIndexPlan("an_index", IndexScanType.BY_VALUE, ScanComparisons.EMPTY, true, null));
         RecordQueryScanPlan scanPlan = new RecordQueryScanPlan(ScanComparisons.EMPTY, true);
         ExpressionRef<RelationalExpression> root = GroupExpressionRef.of(
                 new LogicalUnorderedUnionExpression(

@@ -51,7 +51,7 @@ public class CombineFilterRuleTest {
     private static PlanContext blankContext = new FakePlanContext(Collections.emptyList());
     private static RecordQueryPlan[] basePlans = {
             new RecordQueryScanPlan(ScanComparisons.EMPTY, false),
-            new RecordQueryIndexPlan("not_an_index", IndexScanType.BY_VALUE, ScanComparisons.EMPTY, false)
+            new RecordQueryIndexPlan("not_an_index", IndexScanType.BY_VALUE, ScanComparisons.EMPTY, false, null)
     };
 
     private static LogicalFilterExpression buildLogicalFilter(@Nonnull QueryComponent queryComponent,

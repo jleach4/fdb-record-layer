@@ -83,7 +83,7 @@ public class FDBRecordStoreLimitTestBase extends FDBRecordStoreTestBase {
         return new RecordQueryIndexPlan(indexName, IndexScanType.BY_VALUE,
                 new ScanComparisons(Arrays.asList(new Comparisons.SimpleComparison(Comparisons.Type.EQUALS, value)),
                         Collections.emptySet()),
-                false);
+                false, null);
     }
 
     private KeyExpression primaryKey() {
@@ -93,7 +93,7 @@ public class FDBRecordStoreLimitTestBase extends FDBRecordStoreTestBase {
     public Stream<Arguments> plans(boolean fail) {
         RecordQueryPlan scanPlan = new RecordQueryScanPlan(ScanComparisons.EMPTY, false);
         RecordQueryPlan indexPlan = new RecordQueryIndexPlan("MySimpleRecord$str_value_indexed",
-                IndexScanType.BY_VALUE, ScanComparisons.EMPTY, false);
+                IndexScanType.BY_VALUE, ScanComparisons.EMPTY, false, null);
         QueryComponent filter = Query.field("str_value_indexed").equalsValue("odd");
         QueryComponent middleFilter = Query.and(
                 Query.field("rec_no").greaterThan(24L),
@@ -104,7 +104,7 @@ public class FDBRecordStoreLimitTestBase extends FDBRecordStoreTestBase {
                 Arguments.of("full record scan", fail, scanPlan),
                 Arguments.of("simple index scan", fail, indexPlan),
                 Arguments.of("reverse index scan", fail, new RecordQueryIndexPlan("MySimpleRecord$str_value_indexed",
-                        IndexScanType.BY_VALUE, ScanComparisons.EMPTY, true)),
+                        IndexScanType.BY_VALUE, ScanComparisons.EMPTY, true, null)),
                 Arguments.of("filter on scan plan", fail, new RecordQueryFilterPlan(scanPlan, filter)),
                 Arguments.of("filter on index plan", fail, new RecordQueryFilterPlan(indexPlan, filter)),
                 Arguments.of("type filter on scan plan", fail, new RecordQueryTypeFilterPlan(scanPlan, Collections.singletonList("MySimpleRecord"))),

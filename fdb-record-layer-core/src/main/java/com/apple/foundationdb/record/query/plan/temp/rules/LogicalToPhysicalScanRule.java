@@ -56,7 +56,7 @@ public class LogicalToPhysicalScanRule extends PlannerRule<IndexEntrySourceScanE
             // We only know that we are done matching predicates when we convert to a physical scan, so we check here.
             if (!logical.getComparisons().hasOrderBySourceWithoutComparison()) {
                 call.yield(call.ref(new RecordQueryIndexPlan(indexEntrySource.getIndexName(), logical.getScanType(),
-                        logical.getComparisons().toScanComparisons(), logical.isReverse())));
+                        logical.getComparisons().toScanComparisons(), logical.isReverse(), null)));
             }
         } else {
             call.yield(call.ref(new RecordQueryScanPlan(call.getContext().getMetaData().getRecordTypes().keySet(),

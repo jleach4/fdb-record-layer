@@ -60,7 +60,7 @@ public class RecordQueryPlanEqualityTest {
         return new RecordQueryIndexPlan(indexName, IndexScanType.BY_VALUE,
                 new ScanComparisons(Arrays.asList(new Comparisons.SimpleComparison(Comparisons.Type.EQUALS, value)),
                         Collections.emptySet()),
-                false);
+                false, null);
     }
 
     private RecordQueryPlan unionPlan(Object value1, Object value2) {

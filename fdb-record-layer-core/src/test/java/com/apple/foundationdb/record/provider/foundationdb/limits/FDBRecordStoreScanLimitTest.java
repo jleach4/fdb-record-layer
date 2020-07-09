@@ -356,7 +356,7 @@ public class FDBRecordStoreScanLimitTest extends FDBRecordStoreLimitTestBase {
     @ValueSource(ints = {2, 5, 10, 20}) // for this test, the scan limit must divide 100
     public void testExecuteStateReset(int scanLimit) throws Exception {
         final RecordQueryPlan plan = new RecordQueryIndexPlan("MySimpleRecord$str_value_indexed",
-                IndexScanType.BY_VALUE, ScanComparisons.EMPTY, false);
+                IndexScanType.BY_VALUE, ScanComparisons.EMPTY, false, null);
         ExecuteProperties properties = ExecuteProperties.newBuilder().setScannedRecordsLimit(scanLimit).build();
 
         try (FDBRecordContext context = openContext()) {

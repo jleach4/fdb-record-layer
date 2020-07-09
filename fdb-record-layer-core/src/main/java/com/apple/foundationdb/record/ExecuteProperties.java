@@ -64,6 +64,9 @@ public class ExecuteProperties {
     // a limit on the length of time that the cursor will run for.
     private final long timeLimit;
 
+    // whether to fetch indexes or it should participate in a bitmap scan.
+    private final boolean bitMapScan;
+
     // A wrapper that encapsulates all of the mutable state associated with the execution, such as the record scan limit.
     // In general, the state should be preserved under all transformations except for explicit mutations of the state member.
     @Nonnull
@@ -75,7 +78,7 @@ public class ExecuteProperties {
     private final CursorStreamingMode defaultCursorStreamingMode;
 
     private ExecuteProperties(int skip, int rowLimit, @Nonnull IsolationLevel isolationLevel, long timeLimit,
-                              @Nonnull ExecuteState state, boolean failOnScanLimitReached, @Nonnull CursorStreamingMode defaultCursorStreamingMode) {
+                              @Nonnull ExecuteState state, boolean failOnScanLimitReached, @Nonnull CursorStreamingMode defaultCursorStreamingMode, boolean bitMapScan) {
         this.skip = skip;
         this.rowLimit = rowLimit;
         this.isolationLevel = isolationLevel;
@@ -83,6 +86,7 @@ public class ExecuteProperties {
         this.state = state;
         this.failOnScanLimitReached = failOnScanLimitReached;
         this.defaultCursorStreamingMode = defaultCursorStreamingMode;
+        this.bitMapScan = bitMapScan;
     }
 
     @Nonnull
@@ -99,7 +103,7 @@ public class ExecuteProperties {
         if (skip == this.skip) {
             return this;
         }
-        return copy(skip, rowLimit, timeLimit, isolationLevel, state, failOnScanLimitReached, defaultCursorStreamingMode);
+        return copy(skip, rowLimit, timeLimit, isolationLevel, state, failOnScanLimitReached, defaultCursorStreamingMode, bitMapScan);
     }
 
     /**
@@ -108,6 +112,10 @@ public class ExecuteProperties {
      */
     public int getReturnedRowLimit() {
         return rowLimit;
+    }
+
+    public boolean isBitMapScan() {
+        return bitMapScan;
     }
 
     /**
@@ -121,7 +129,7 @@ public class ExecuteProperties {
         if (newLimit == this.rowLimit) {
             return this;
         }
-        return copy(skip, newLimit, timeLimit, isolationLevel, state, failOnScanLimitReached, defaultCursorStreamingMode);
+        return copy(skip, newLimit, timeLimit, isolationLevel, state, failOnScanLimitReached, defaultCursorStreamingMode, bitMapScan);
     }
 
     /**
@@ -168,7 +176,7 @@ public class ExecuteProperties {
      */
     @Nonnull
     public ExecuteProperties setState(@Nonnull ExecuteState newState) {
-        return copy(skip, rowLimit, timeLimit, isolationLevel, newState, failOnScanLimitReached, defaultCursorStreamingMode);
+        return copy(skip, rowLimit, timeLimit, isolationLevel, newState, failOnScanLimitReached, defaultCursorStreamingMode, bitMapScan);
     }
 
     /**
@@ -177,7 +185,7 @@ public class ExecuteProperties {
      */
     @Nonnull
     public ExecuteProperties clearState() {
-        return copy(skip, rowLimit, timeLimit, isolationLevel, new ExecuteState(), failOnScanLimitReached, defaultCursorStreamingMode);
+        return copy(skip, rowLimit, timeLimit, isolationLevel, new ExecuteState(), failOnScanLimitReached, defaultCursorStreamingMode, bitMapScan);
     }
 
     /**
@@ -193,7 +201,7 @@ public class ExecuteProperties {
         if (failOnScanLimitReached == this.failOnScanLimitReached) {
             return this;
         }
-        return copy(skip, rowLimit, timeLimit, isolationLevel, state, failOnScanLimitReached, defaultCursorStreamingMode);
+        return copy(skip, rowLimit, timeLimit, isolationLevel, state, failOnScanLimitReached, defaultCursorStreamingMode, bitMapScan);
     }
 
     @Nonnull
@@ -201,7 +209,7 @@ public class ExecuteProperties {
         if (getReturnedRowLimit() == ReadTransaction.ROW_LIMIT_UNLIMITED) {
             return this;
         }
-        return copy(skip, ReadTransaction.ROW_LIMIT_UNLIMITED, timeLimit, isolationLevel, state, failOnScanLimitReached, defaultCursorStreamingMode);
+        return copy(skip, ReadTransaction.ROW_LIMIT_UNLIMITED, timeLimit, isolationLevel, state, failOnScanLimitReached, defaultCursorStreamingMode, bitMapScan);
     }
 
     /**
@@ -213,7 +221,7 @@ public class ExecuteProperties {
         if (getTimeLimit() == UNLIMITED_TIME && getReturnedRowLimit() == ReadTransaction.ROW_LIMIT_UNLIMITED ) {
             return this;
         }
-        return copy(skip, ReadTransaction.ROW_LIMIT_UNLIMITED, UNLIMITED_TIME, isolationLevel, state, failOnScanLimitReached, defaultCursorStreamingMode);
+        return copy(skip, ReadTransaction.ROW_LIMIT_UNLIMITED, UNLIMITED_TIME, isolationLevel, state, failOnScanLimitReached, defaultCursorStreamingMode, bitMapScan);
     }
 
     /**
@@ -225,7 +233,15 @@ public class ExecuteProperties {
         if (skip == 0 && rowLimit == ReadTransaction.ROW_LIMIT_UNLIMITED) {
             return this;
         }
-        return copy(0, ReadTransaction.ROW_LIMIT_UNLIMITED, timeLimit, isolationLevel, state, failOnScanLimitReached, defaultCursorStreamingMode);
+        return copy(0, ReadTransaction.ROW_LIMIT_UNLIMITED, timeLimit, isolationLevel, state, failOnScanLimitReached, defaultCursorStreamingMode, bitMapScan);
+    }
+
+    @Nonnull
+    public ExecuteProperties clearSkipAndLimitForBitMapScan() {
+        if (skip == 0 && rowLimit == ReadTransaction.ROW_LIMIT_UNLIMITED && bitMapScan) {
+            return this;
+        }
+        return copy(0, ReadTransaction.ROW_LIMIT_UNLIMITED, timeLimit, isolationLevel, state, failOnScanLimitReached, defaultCursorStreamingMode, true);
     }
 
     /**
@@ -238,7 +254,23 @@ public class ExecuteProperties {
             return this;
         }
         return copy(0, rowLimit == ReadTransaction.ROW_LIMIT_UNLIMITED ? ReadTransaction.ROW_LIMIT_UNLIMITED : rowLimit + skip,
-                timeLimit, isolationLevel, state, failOnScanLimitReached, defaultCursorStreamingMode);
+                timeLimit, isolationLevel, state, failOnScanLimitReached, defaultCursorStreamingMode, bitMapScan);
+    }
+
+    @Nonnull
+    public ExecuteProperties addBitMapScan() {
+        if (skip == 0) {
+            return this;
+        }
+        return copy(this.skip, this.rowLimit, this.timeLimit, this.isolationLevel, this.state, this.failOnScanLimitReached, this.defaultCursorStreamingMode, true);
+    }
+
+    public ExecuteProperties clearSkipAndAdjustLimitForBitMapScan() {
+        if (skip == 0) {
+            return this;
+        }
+        return copy(0, rowLimit == ReadTransaction.ROW_LIMIT_UNLIMITED ? ReadTransaction.ROW_LIMIT_UNLIMITED : rowLimit + skip,
+                timeLimit, isolationLevel, state, failOnScanLimitReached, defaultCursorStreamingMode, true);
     }
 
     /**
@@ -289,7 +321,7 @@ public class ExecuteProperties {
         if (defaultCursorStreamingMode == this.defaultCursorStreamingMode) {
             return this;
         }
-        return copy(skip, rowLimit, timeLimit, isolationLevel, state, failOnScanLimitReached, defaultCursorStreamingMode);
+        return copy(skip, rowLimit, timeLimit, isolationLevel, state, failOnScanLimitReached, defaultCursorStreamingMode, bitMapScan);
     }
 
     /**
@@ -299,7 +331,7 @@ public class ExecuteProperties {
      */
     @Nonnull
     public ExecuteProperties resetState() {
-        return copy(skip, rowLimit, timeLimit, isolationLevel, state.reset(), failOnScanLimitReached, defaultCursorStreamingMode);
+        return copy(skip, rowLimit, timeLimit, isolationLevel, state.reset(), failOnScanLimitReached, defaultCursorStreamingMode, bitMapScan);
     }
 
     /**
@@ -315,8 +347,8 @@ public class ExecuteProperties {
      */
     @Nonnull
     protected ExecuteProperties copy(int skip, int rowLimit, long timeLimit, @Nonnull IsolationLevel isolationLevel,
-                                     @Nonnull ExecuteState state, boolean failOnScanLimitReached, CursorStreamingMode defaultCursorStreamingMode) {
-        return new ExecuteProperties(skip, rowLimit, isolationLevel, timeLimit, state, failOnScanLimitReached, defaultCursorStreamingMode);
+                                     @Nonnull ExecuteState state, boolean failOnScanLimitReached, CursorStreamingMode defaultCursorStreamingMode, boolean bitMapScan) {
+        return new ExecuteProperties(skip, rowLimit, isolationLevel, timeLimit, state, failOnScanLimitReached, defaultCursorStreamingMode, bitMapScan);
     }
 
     @Nonnull
@@ -390,6 +422,7 @@ public class ExecuteProperties {
         private ExecuteState executeState = null;
         private boolean failOnScanLimitReached = false;
         private CursorStreamingMode defaultCursorStreamingMode = CursorStreamingMode.ITERATOR;
+        private boolean bitMapScan;
 
         private Builder() {
         }
@@ -402,6 +435,7 @@ public class ExecuteProperties {
             this.executeState = executeProperties.state;
             this.failOnScanLimitReached = executeProperties.failOnScanLimitReached;
             this.defaultCursorStreamingMode = executeProperties.defaultCursorStreamingMode;
+            this.bitMapScan = executeProperties.bitMapScan;
         }
 
         @Nonnull
@@ -428,6 +462,11 @@ public class ExecuteProperties {
             return this;
         }
 
+        @Nonnull
+        public Builder setBitMapScan(boolean bitMapScan) {
+            this.bitMapScan = bitMapScan;
+            return this;
+        }
         /**
          * Set the limit on the number of records that may be scanned.
          * Note that at most one of {@link #scannedRecordsLimit} and {@link #executeState} may be set at the same time,
@@ -534,7 +573,7 @@ public class ExecuteProperties {
             } else {
                 state = new ExecuteState(RecordScanLimiterFactory.enforce(scannedRecordsLimit), ByteScanLimiterFactory.enforce(scannedBytesLimit));
             }
-            return new ExecuteProperties(skip, rowLimit, isolationLevel, timeLimit, state, failOnScanLimitReached, defaultCursorStreamingMode);
+            return new ExecuteProperties(skip, rowLimit, isolationLevel, timeLimit, state, failOnScanLimitReached, defaultCursorStreamingMode, bitMapScan);
         }
     }
 }

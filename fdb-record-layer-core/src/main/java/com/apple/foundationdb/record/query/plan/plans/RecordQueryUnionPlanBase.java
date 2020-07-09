@@ -23,11 +23,14 @@ package com.apple.foundationdb.record.query.plan.plans;
 import com.apple.foundationdb.annotation.API;
 import com.apple.foundationdb.record.EvaluationContext;
 import com.apple.foundationdb.record.ExecuteProperties;
+import com.apple.foundationdb.record.IndexEntry;
 import com.apple.foundationdb.record.PlanHashable;
 import com.apple.foundationdb.record.RecordCursor;
 import com.apple.foundationdb.record.provider.common.StoreTimer;
 import com.apple.foundationdb.record.provider.foundationdb.FDBQueriedRecord;
 import com.apple.foundationdb.record.provider.foundationdb.FDBRecordStoreBase;
+import com.apple.foundationdb.record.provider.foundationdb.IndexOrphanBehavior;
+import com.apple.foundationdb.record.provider.foundationdb.cursors.IntersectionCursor;
 import com.apple.foundationdb.record.query.plan.temp.ExpressionRef;
 import com.apple.foundationdb.record.query.plan.temp.GroupExpressionRef;
 import com.apple.foundationdb.record.query.plan.temp.Quantifier;
@@ -86,13 +89,18 @@ abstract class RecordQueryUnionPlanBase implements RecordQueryPlanWithChildren {
         if (executeProperties.getSkip() > 0) {
             childExecuteProperties = executeProperties.clearSkipAndAdjustLimit();
         } else {
-            childExecuteProperties = executeProperties;
+            childExecuteProperties = executeProperties.addBitMapScan();
         }
         final List<Function<byte[], RecordCursor<FDBQueriedRecord<M>>>> childCursorFunctions = getChildStream()
                 .map(childPlan -> (Function<byte[], RecordCursor<FDBQueriedRecord<M>>>)
                         ((byte[] childContinuation) -> childPlan.execute(store, context, childContinuation, childExecuteProperties)))
                 .collect(Collectors.toList());
-        return createUnionCursor(store, childCursorFunctions, continuation).skipThenLimit(executeProperties.getSkip(), executeProperties.getReturnedRowLimit());
+        final RecordCursor<IndexEntry> entryRecordCursor = createUnionCursor(store, childCursorFunctions, continuation)
+                .map( mfdbQueriedRecord -> mfdbQueriedRecord.getIndexEntry())
+                .skipThenLimit(executeProperties.getSkip(), executeProperties.getReturnedRowLimit());
+        return store.
+                fetchIndexRecords(entryRecordCursor, IndexOrphanBehavior.ERROR, executeProperties.getState())
+                .map(store::queriedRecord);
     }
 
     @Override

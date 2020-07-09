@@ -155,7 +155,7 @@ public class QueryPlanCursorTest extends FDBRecordStoreTestBase {
         return new RecordQueryIndexPlan(indexName, IndexScanType.BY_VALUE,
                 new ScanComparisons(Arrays.asList(new Comparisons.SimpleComparison(Comparisons.Type.EQUALS, value)),
                         Collections.emptySet()),
-                false);
+                false, null);
     }
 
     private KeyExpression primaryKey() {
@@ -192,7 +192,7 @@ public class QueryPlanCursorTest extends FDBRecordStoreTestBase {
                 new ScanComparisons(Collections.emptyList(), ImmutableSet.of(
                         new Comparisons.SimpleComparison(Comparisons.Type.GREATER_THAN, 2),
                         new Comparisons.SimpleComparison(Comparisons.Type.LESS_THAN, 4))),
-                false);
+                false, null);
         compareSkipsAndCursors(plan);
     }
 
@@ -202,7 +202,7 @@ public class QueryPlanCursorTest extends FDBRecordStoreTestBase {
                 new ScanComparisons(Collections.emptyList(), ImmutableSet.of(
                         new Comparisons.SimpleComparison(Comparisons.Type.GREATER_THAN, 2),
                         new Comparisons.SimpleComparison(Comparisons.Type.LESS_THAN, 4))),
-                true);
+                true, null);
         compareSkipsAndCursors(plan);
     }
 
@@ -210,7 +210,7 @@ public class QueryPlanCursorTest extends FDBRecordStoreTestBase {
     public void in() throws Exception {
         final RecordQueryPlan plan = new RecordQueryInValuesJoinPlan(
                 new RecordQueryIndexPlan("MySimpleRecord$num_value_3_indexed", IndexScanType.BY_VALUE,
-                new ScanComparisons(Arrays.asList(new Comparisons.ParameterComparison(Comparisons.Type.EQUALS, "in_num")), Collections.emptySet()), false),
+                new ScanComparisons(Arrays.asList(new Comparisons.ParameterComparison(Comparisons.Type.EQUALS, "in_num")), Collections.emptySet()), false, null),
                 "in_num", Arrays.asList(2, 4), false, false);
         compareSkipsAndCursors(plan);
     }

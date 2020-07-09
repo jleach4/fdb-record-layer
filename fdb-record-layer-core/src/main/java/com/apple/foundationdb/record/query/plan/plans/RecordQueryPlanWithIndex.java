@@ -26,9 +26,15 @@ import com.apple.foundationdb.record.ExecuteProperties;
 import com.apple.foundationdb.record.IndexEntry;
 import com.apple.foundationdb.record.IndexScanType;
 import com.apple.foundationdb.record.RecordCursor;
+import com.apple.foundationdb.record.RecordMetaDataProto;
+import com.apple.foundationdb.record.metadata.Index;
+import com.apple.foundationdb.record.metadata.RecordType;
+import com.apple.foundationdb.record.provider.foundationdb.FDBIndexedRecord;
 import com.apple.foundationdb.record.provider.foundationdb.FDBQueriedRecord;
 import com.apple.foundationdb.record.provider.foundationdb.FDBRecordStoreBase;
+import com.apple.foundationdb.record.provider.foundationdb.FDBStoredRecord;
 import com.apple.foundationdb.record.provider.foundationdb.IndexOrphanBehavior;
+import com.apple.foundationdb.record.query.plan.IndexKeyValueToPartialRecord;
 import com.apple.foundationdb.record.query.plan.temp.explain.Attribute;
 import com.apple.foundationdb.record.query.plan.temp.explain.NodeInfo;
 import com.apple.foundationdb.record.query.plan.temp.explain.PlannerGraph;
@@ -39,6 +45,7 @@ import com.google.protobuf.Message;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -63,6 +70,9 @@ public interface RecordQueryPlanWithIndex extends RecordQueryPlan {
     IndexScanType getScanType();
 
     @Nonnull
+    IndexKeyValueToPartialRecord getIndexKeyValueToPartialRecord();
+
+    @Nonnull
     <M extends Message> RecordCursor<IndexEntry> executeEntries(@Nonnull FDBRecordStoreBase<M> store,
                                                                 @Nonnull EvaluationContext context,
                                                                 @Nullable byte[] continuation,
@@ -75,8 +85,15 @@ public interface RecordQueryPlanWithIndex extends RecordQueryPlan {
                                                                           @Nullable byte[] continuation,
                                                                           @Nonnull ExecuteProperties executeProperties) {
         final RecordCursor<IndexEntry> entryRecordCursor = executeEntries(store, context, continuation, executeProperties);
-        return store.fetchIndexRecords(entryRecordCursor, IndexOrphanBehavior.ERROR, executeProperties.getState())
-                .map(store::queriedRecord);
+        Index index = store.getRecordMetaData().getIndex(getIndexName());
+        final Collection<RecordType> recordTypes = store.getRecordMetaData().recordTypesForIndex(index);
+        if (executeProperties.isBitMapScan() && recordTypes.size() == 1 && getIndexKeyValueToPartialRecord() != null) {
+            RecordType recordType = recordTypes.iterator().next();
+            return new RecordQueryCoveringIndexPlan(this, recordType.getName(), getIndexKeyValueToPartialRecord()).execute(store, context, continuation, executeProperties);
+        } else {
+            return store.fetchIndexRecords(entryRecordCursor, IndexOrphanBehavior.ERROR, executeProperties.getState())
+                    .map(store::queriedRecord);
+        }
     }
 
     /**

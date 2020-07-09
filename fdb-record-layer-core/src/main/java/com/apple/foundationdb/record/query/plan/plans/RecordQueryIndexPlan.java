@@ -31,6 +31,7 @@ import com.apple.foundationdb.record.TupleRange;
 import com.apple.foundationdb.record.provider.common.StoreTimer;
 import com.apple.foundationdb.record.provider.foundationdb.FDBRecordStoreBase;
 import com.apple.foundationdb.record.provider.foundationdb.FDBStoreTimer;
+import com.apple.foundationdb.record.query.plan.IndexKeyValueToPartialRecord;
 import com.apple.foundationdb.record.query.plan.ScanComparisons;
 import com.apple.foundationdb.record.query.plan.temp.RelationalExpression;
 import com.apple.foundationdb.record.query.plan.temp.explain.Attribute;
@@ -61,12 +62,20 @@ public class RecordQueryIndexPlan implements RecordQueryPlanWithNoChildren, Reco
     @Nonnull
     protected final ScanComparisons comparisons;
     protected final boolean reverse;
+    protected final IndexKeyValueToPartialRecord indexKeyValueToPartialRecord;
 
-    public RecordQueryIndexPlan(@Nonnull final String indexName, @Nonnull IndexScanType scanType, @Nonnull final ScanComparisons comparisons, final boolean reverse) {
+    public RecordQueryIndexPlan(@Nonnull final String indexName, @Nonnull IndexScanType scanType, @Nonnull final ScanComparisons comparisons, final boolean reverse, IndexKeyValueToPartialRecord indexKeyValueToPartialRecord) {
         this.indexName = indexName;
         this.scanType = scanType;
         this.comparisons = comparisons;
         this.reverse = reverse;
+        this.indexKeyValueToPartialRecord = indexKeyValueToPartialRecord;
+    }
+
+    @Nonnull
+    @Override
+    public IndexKeyValueToPartialRecord getIndexKeyValueToPartialRecord() {
+        return indexKeyValueToPartialRecord;
     }
 
     @Nonnull

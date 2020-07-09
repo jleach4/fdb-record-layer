@@ -53,7 +53,7 @@ public class QueryPlanStructuralInstrumentationTest {
         return new RecordQueryIndexPlan(indexName, IndexScanType.BY_VALUE,
                 new ScanComparisons(Arrays.asList(new Comparisons.SimpleComparison(Comparisons.Type.EQUALS, value)),
                         Collections.emptySet()),
-                false);
+                false, null);
     }
 
     private void assertNoIndexes(RecordQueryPlan plan) {
@@ -92,7 +92,7 @@ public class QueryPlanStructuralInstrumentationTest {
         final String indexName = "a_field";
         final RecordQueryPlan plan = new RecordQueryInValuesJoinPlan(
                 new RecordQueryIndexPlan(indexName, IndexScanType.BY_VALUE,
-                        new ScanComparisons(Arrays.asList(new Comparisons.ParameterComparison(Comparisons.Type.EQUALS, "another_field")), Collections.emptySet()), false),
+                        new ScanComparisons(Arrays.asList(new Comparisons.ParameterComparison(Comparisons.Type.EQUALS, "another_field")), Collections.emptySet()), false, null),
                 "another_field", Arrays.asList(2, 4), false, false);
         assertUsesIndexes(plan, Lists.newArrayList(indexName));
 
