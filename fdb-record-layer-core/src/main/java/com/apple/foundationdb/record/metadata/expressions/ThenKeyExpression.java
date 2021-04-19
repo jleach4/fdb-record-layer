@@ -26,11 +26,18 @@ import com.apple.foundationdb.record.PlanHashable;
 import com.apple.foundationdb.record.RecordCoreException;
 import com.apple.foundationdb.record.RecordMetaDataProto;
 import com.apple.foundationdb.record.metadata.Key;
+import com.apple.foundationdb.record.metadata.RecordType;
 import com.apple.foundationdb.record.provider.foundationdb.FDBRecord;
 import com.apple.foundationdb.record.query.plan.temp.KeyExpressionVisitor;
 import com.apple.foundationdb.record.util.HashUtils;
+import com.apple.foundationdb.record.query.plan.calcite.CloudKitTable;
+import com.google.common.collect.ImmutableList;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.util.ImmutableBitSet;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -314,6 +321,25 @@ public class ThenKeyExpression extends BaseKeyExpression implements KeyExpressio
             }
         }
         return i;
+    }
+
+    @Override
+    public List<RelFieldCollation> getCollation(Descriptors.Descriptor descriptor) {
+        List<RelFieldCollation> collations = new ArrayList<>(children.size());
+        children.forEach(keyExpression -> {
+            collations.addAll(keyExpression.getCollation(descriptor));
+        });
+        return collations;
+    }
+
+    @Override
+    public void buildDataType(RelDataTypeFactory.Builder builder, Descriptors.Descriptor descriptor) {
+        children.forEach( (child) -> child.buildDataType(builder, descriptor));
+    }
+
+    @Override
+    public String getSQL(RecordType recordType) {
+        return "";
     }
 }
 

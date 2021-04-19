@@ -26,12 +26,19 @@ import com.apple.foundationdb.record.QueryHashable;
 import com.apple.foundationdb.record.RecordCoreException;
 import com.apple.foundationdb.record.RecordMetaDataProto;
 import com.apple.foundationdb.record.metadata.Key;
+import com.apple.foundationdb.record.metadata.RecordType;
 import com.apple.foundationdb.record.provider.foundationdb.FDBRecord;
 import com.apple.foundationdb.record.query.plan.temp.ExpansionVisitor;
 import com.apple.foundationdb.record.query.plan.temp.GraphExpansion;
 import com.apple.foundationdb.record.query.plan.temp.KeyExpressionVisitor;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.schema.Table;
+import org.apache.calcite.util.ImmutableBitSet;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -65,6 +72,18 @@ public interface KeyExpression extends PlanHashable, QueryHashable {
     @Nonnull
     default <M extends Message> List<Key.Evaluated> evaluate(@Nullable FDBRecord<M> record) {
         return evaluateMessage(record, record == null ? null : record.getRecord());
+    }
+
+    default List<RelFieldCollation> getCollation(Descriptors.Descriptor descriptor) {
+        throw new InvalidExpressionException(this.getClass() + " does not implement KeyExpression#getPrimaryKeysForPlanner");
+    }
+
+    default void buildDataType(RelDataTypeFactory.Builder builder, Descriptors.Descriptor descriptor) {
+        throw new InvalidExpressionException(this.getClass() + " does not implement KeyExpression#buildDataType");
+    }
+
+    default String getSQL(RecordType recordType) {
+        throw new InvalidExpressionException(this.getClass() + " does not implement KeyExpression#getSQL");
     }
 
     /**

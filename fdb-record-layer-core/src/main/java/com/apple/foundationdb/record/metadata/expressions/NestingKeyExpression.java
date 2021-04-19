@@ -25,11 +25,13 @@ import com.apple.foundationdb.record.ObjectPlanHash;
 import com.apple.foundationdb.record.PlanHashable;
 import com.apple.foundationdb.record.RecordMetaDataProto;
 import com.apple.foundationdb.record.metadata.Key;
+import com.apple.foundationdb.record.metadata.RecordType;
 import com.apple.foundationdb.record.provider.foundationdb.FDBRecord;
 import com.apple.foundationdb.record.query.plan.temp.KeyExpressionVisitor;
 import com.apple.foundationdb.record.util.HashUtils;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -213,5 +215,11 @@ public class NestingKeyExpression extends BaseKeyExpression implements KeyExpres
     @Override
     public boolean equalsAtomic(AtomKeyExpression other) {
         return this.getClass() == other.getClass() && parent.equals(((NestingKeyExpression) other).parent);
+    }
+
+    @Override
+    public void buildDataType(RelDataTypeFactory.Builder builder, Descriptors.Descriptor descriptor) {
+        Descriptors.FieldDescriptor parentDescriptor = descriptor.findFieldByName(this.parent.getFieldName());
+        this.child.buildDataType(builder, parentDescriptor.getMessageType());
     }
 }

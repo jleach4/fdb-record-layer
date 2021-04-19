@@ -25,11 +25,13 @@ import com.apple.foundationdb.record.ObjectPlanHash;
 import com.apple.foundationdb.record.PlanHashable;
 import com.apple.foundationdb.record.RecordMetaDataProto;
 import com.apple.foundationdb.record.metadata.Key;
+import com.apple.foundationdb.record.metadata.RecordType;
 import com.apple.foundationdb.record.provider.foundationdb.FDBRecord;
 import com.apple.foundationdb.record.query.plan.temp.KeyExpressionVisitor;
 import com.apple.foundationdb.record.util.HashUtils;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -209,5 +211,15 @@ public class GroupingKeyExpression extends BaseKeyExpression implements KeyExpre
     @Override
     public int queryHash(@Nonnull final QueryHashKind hashKind) {
         return HashUtils.queryHash(hashKind, BASE_HASH, getWholeKey(), groupedCount);
+    }
+
+    @Override
+    public void buildDataType(RelDataTypeFactory.Builder builder, Descriptors.Descriptor descriptor) {
+        this.wholeKey.buildDataType(builder, descriptor);
+    }
+
+    @Override
+    public String getSQL(RecordType recordType) {
+        return "";
     }
 }

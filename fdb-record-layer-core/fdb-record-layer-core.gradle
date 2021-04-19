@@ -38,6 +38,10 @@ dependencies {
     compile "org.slf4j:slf4j-api:${slf4jVersion}"
     compile "org.apache.commons:commons-lang3:${commonsLang3Version}"
     compile "com.google.guava:guava:${guavaVersion}"
+    compile ("org.apache.calcite:calcite-core:1.26.0") {
+        exclude group: 'com.google.protobuf', module: 'protobuf-java'
+    }
+
     compileOnly "com.google.code.findbugs:jsr305:${jsr305Version}"
     compileOnly "com.google.auto.service:auto-service:${autoServiceVersion}"
     annotationProcessor "com.google.auto.service:auto-service:${autoServiceVersion}"

@@ -26,6 +26,7 @@ import com.apple.foundationdb.record.PlanHashable;
 import com.apple.foundationdb.record.RecordCoreException;
 import com.apple.foundationdb.record.RecordMetaDataProto;
 import com.apple.foundationdb.record.metadata.Key;
+import com.apple.foundationdb.record.metadata.RecordType;
 import com.apple.foundationdb.record.provider.foundationdb.FDBRecord;
 import com.apple.foundationdb.record.query.expressions.Query;
 import com.apple.foundationdb.record.query.plan.temp.CorrelationIdentifier;
@@ -34,9 +35,18 @@ import com.apple.foundationdb.record.query.plan.temp.KeyExpressionVisitor;
 import com.apple.foundationdb.record.query.plan.temp.Quantifier;
 import com.apple.foundationdb.record.query.plan.temp.expressions.ExplodeExpression;
 import com.apple.foundationdb.record.util.HashUtils;
+import com.apple.foundationdb.record.query.plan.calcite.CloudKitTable;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.impl.MaterializedViewTable;
+import org.apache.calcite.util.ImmutableBitSet;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -378,5 +388,22 @@ public class FieldKeyExpression extends BaseKeyExpression implements AtomKeyExpr
     @Override
     public boolean equalsAtomic(AtomKeyExpression other) {
         return equals(other);
+    }
+
+    @Override
+    public List<RelFieldCollation> getCollation(Descriptors.Descriptor descriptor) {
+        Descriptors.FieldDescriptor fieldDescriptor = descriptor.findFieldByName(fieldName);
+        return Collections.singletonList(new RelFieldCollation(fieldDescriptor.getIndex(), RelFieldCollation.Direction.STRICTLY_ASCENDING));
+    }
+
+    @Override
+    public void buildDataType(RelDataTypeFactory.Builder builder, Descriptors.Descriptor descriptor) {
+        Descriptors.FieldDescriptor fieldDescriptor = descriptor.findFieldByName(fieldName);
+        builder.add(fieldDescriptor.getName(), CloudKitTable.getRelDataType(fieldDescriptor));
+    }
+
+    @Override
+    public String getSQL(RecordType recordType) {
+        return "select " + fieldName + " from " + recordType.getName() + " order by " + fieldName;
     }
 }
